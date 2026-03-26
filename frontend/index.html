@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpaceStack — Mission Control</title>
+  <link rel="icon" type="image/png" href="assets/L3Harrisred.png">
+  <meta name="description" content="SpaceStack: Your premium space mission control dashboard for monitoring weather, battery, storage, CPU, temperature, and position." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================
+       RESET & BASE
+       ============================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ============================================
+       THEME VARIABLES
+       ============================================ */
+    :root {
+      --bg: #393939;
+      --bg-gradient: #343541;
+      --sidebar-bg: rgba(35, 35, 35, 1.0);
+      --sidebar-border: rgba(35, 35, 35, 0.75);
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-bg: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(255, 255, 255, 0.15);
+      --text: #e4e4e7;
+      --text-muted: rgba(228, 228, 231, 0.5);
+      --text-dim: rgba(228, 228, 231, 0.3);
+      --accent: #10a37f;
+      --accent-glow: rgba(16, 163, 127, 0.3);
+      --accent-secondary: #1a7f64;
+      --active-bg: rgba(255, 255, 255, 0.08);
+      --active-bg-hover: rgba(255, 255, 255, 0.12);
+      --input-bg: rgba(255, 255, 255, 0.05);
+      --input-border: rgba(255, 255, 255, 0.1);
+      --glass-blur: 20px;
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 16px;
+      --radius-2xl: 20px;
+      --radius-pill: 999px;
+      --sidebar-width-expanded: 260px;
+      --sidebar-width-collapsed: 72px;
+      --transition-speed: 200ms;
+      --green: #4ade80;
+      --yellow: #facc15;
+      --orange: #fb923c;
+      --red: #f87171;
+      --cyan: #10a37f;
+    }
+
+    /* ============================================
+       ANIMATED BACKGROUND
+       ============================================ */
+    body {
+      background: var(--bg-gradient);
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      display: none;
+    }
+
+    /* ============================================
+       LOGIN OVERLAY
+       ============================================ */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: var(--bg-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: loginFadeIn 600ms ease forwards;
+    }
+
+    .login-overlay.hidden {
+      animation: loginFadeOut 500ms ease forwards;
+      pointer-events: none;
+    }
+
+    .login-particles {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes loginFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes loginFadeOut {
+      from { opacity: 1; }
+      to   { opacity: 0; }
+    }
+
+    .login-card {
+      width: 380px;
+      max-width: 90vw;
+      background: var(--sidebar-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-2xl);
+      padding: 40px 32px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+      animation: loginCardSlide 500ms ease forwards;
+    }
+
+    @keyframes loginCardSlide {
+      from { opacity: 0; transform: translateY(24px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .login-card__brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .login-card__logo {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-lg);
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-card__logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-lg);
+    }
+
+    .login-card__title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+
+    .login-card__subtitle {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: -4px;
+    }
+
+    .login-card__form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .login-card__field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .login-card__label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .login-card__input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 200ms ease, box-shadow 200ms ease;
+    }
+
+    .login-card__field--password {
+      position: relative;
+    }
+
+    .login-card__field--password .login-card__input {
+      padding-right: 44px;
+    }
+
+    .login-card__toggle-pw {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 200ms ease, background 200ms ease;
+    }
+
+    .login-card__toggle-pw:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .login-card__toggle-pw svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .login-card__input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .login-card__input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .login-card__input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
+    }
+
+    .login-card__error {
+      font-size: 12.5px;
+      color: var(--red);
+      text-align: center;
+      min-height: 18px;
+      opacity: 0;
+      transition: opacity 200ms ease;
+    }
+
+    .login-card__error.visible {
+      opacity: 1;
+    }
+
+    .login-card__btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 200ms ease, transform 100ms ease, box-shadow 200ms ease;
+      letter-spacing: 0.3px;
+    }
+
+    .login-card__btn:hover {
+      background: var(--accent-secondary);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .login-card__btn:active {
+      transform: scale(0.97);
+    }
+
+    .login-card__btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* ============================================
+       APP CONTAINER
+       ============================================ */
+    .app {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ============================================
+       SIDEBAR
+       ============================================ */
+    .sidebar {
+      width: var(--sidebar-width-expanded);
+      min-width: var(--sidebar-width-expanded);
+      height: 100%;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      display: flex;
+      flex-direction: column;
+      padding: 20px 12px;
+      transition: width var(--transition-speed) ease,
+                  min-width var(--transition-speed) ease,
+                  padding var(--transition-speed) ease;
+      overflow: hidden;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* -- Collapsed sidebar -- */
+    .app.sidebar-collapsed .sidebar {
+      width: var(--sidebar-width-collapsed);
+      min-width: var(--sidebar-width-collapsed);
+      padding: 24px 10px;
+    }
+
+    /* -- Logo & brand -- */
+    .sidebar__brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 8px;
+      margin-bottom: 36px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .sidebar__logo {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-md);
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar__logo svg {
+      width: 20px;
+      height: 20px;
+      color: #fff;
+    }
+
+    .sidebar__logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-md);
+    }
+
+    .sidebar__brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar__brand-name {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: var(--text);
+    }
+
+    .sidebar__brand-tagline {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.2px;
+      margin-top: 2px;
+    }
+
+    .app.sidebar-collapsed .sidebar__brand-text {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      position: absolute;
+    }
+
+    .app.sidebar-collapsed .sidebar__brand {
+      justify-content: center;
+      padding: 0;
+    }
+
+    /* -- Collapse / expand toggle -- */
+    .sidebar__toggle {
+      position: absolute;
+      top: 28px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .sidebar__toggle:hover {
+      color: var(--text);
+      background: var(--active-bg);
+    }
+
+    .sidebar__toggle:active {
+      transform: scale(0.9);
+    }
+
+    .sidebar__toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .app.sidebar-collapsed .sidebar__toggle { display: none; }
+
+    /* -- Navigation -- */
+    .sidebar__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .sidebar__section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      padding: 8px 14px 6px;
+      margin-top: 8px;
+    }
+
+    .app.sidebar-collapsed .sidebar__section-label {
+      opacity: 0;
+      height: 0;
+      padding: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* -- Nav button base -- */
+    .sidebar__nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      transition: background var(--transition-speed) ease,
+                  color 150ms ease,
+                  padding var(--transition-speed) ease,
+                  transform 100ms ease,
+                  box-shadow 200ms ease;
+      white-space: nowrap;
+      overflow: hidden;
+      width: 100%;
+      text-align: left;
+      font-size: 13.5px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      position: relative;
+    }
+
+    .sidebar__nav-btn:hover {
+      background: var(--active-bg);
+      color: var(--text);
+    }
+
+    .sidebar__nav-btn:active {
+      transform: scale(0.97);
+    }
+
+    .sidebar__nav-btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Active state */
+    .sidebar__nav-btn.active {
+      background: var(--active-bg);
+      color: #ffffff;
+    }
+
+    .sidebar__nav-btn.active:hover {
+      background: var(--active-bg-hover);
+    }
+
+    /* Nav icon wrapper */
+    .sidebar__nav-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+    }
+
+    .sidebar__nav-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Nav label */
+    .sidebar__nav-label {
+      opacity: 1;
+      transition: opacity var(--transition-speed) ease;
+    }
+
+    /* Collapsed: center icons, hide labels */
+    .app.sidebar-collapsed .sidebar__nav-btn {
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .app.sidebar-collapsed .sidebar__nav-label {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      position: absolute;
+    }
+
+    .sidebar__nav-btn--back {
+      margin-bottom: 4px;
+      display: none;
+    }
+
+    .app.sidebar-collapsed .sidebar__nav-btn--back {
+      display: flex;
+    }
+
+    .app.sidebar-collapsed .sidebar__nav-btn--back .sidebar__nav-icon {
+      transform: rotate(180deg);
+    }
+
+    /* -- Sidebar footer -- */
+    .sidebar__footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 10px;
+      border-top: 1px solid var(--sidebar-border);
+      margin-top: 8px;
+    }
+
+    .sidebar__footer-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .sidebar__settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      transition: color 150ms ease, background 150ms ease, transform 150ms ease;
+    }
+
+    .sidebar__settings-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .sidebar__settings-btn:hover {
+      color: var(--text);
+      background: var(--active-bg);
+    }
+
+    .sidebar__settings-btn:active {
+      transform: scale(0.9);
+    }
+
+    .sidebar__settings-btn.active {
+      color: var(--accent);
+    }
+
+    .app.sidebar-collapsed .sidebar__settings-btn {
+      display: none;
+    }
+
+    .sidebar__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      border: none;
+    }
+
+    .sidebar__user-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar__user-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .sidebar__user-role {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .app.sidebar-collapsed .sidebar__user-info {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      position: absolute;
+    }
+
+    .app.sidebar-collapsed .sidebar__footer {
+      justify-content: center;
+    }
+
+    /* ============================================
+       MAIN CONTENT AREA
+       ============================================ */
+    .content {
+      flex: 1;
+      height: 100%;
+      overflow: auto;
+      transition: margin var(--transition-speed) ease;
+      padding: 0;
+      position: relative;
+      background: var(--bg);
+    }
+
+    /* Scrollbar styling */
+    .content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-pill);
+    }
+
+    .content::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ============================================
+       VIEWS
+       ============================================ */
+    .view {
+      display: none;
+      width: 100%;
+      height: 100%;
+      animation: viewFadeIn 400ms ease forwards;
+    }
+
+    .view.active {
+      display: flex;
+    }
+
+    @keyframes viewFadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================
+       PAGE HEADER
+       ============================================ */
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-header__title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+
+    .page-header__subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ============================================
+       DASHBOARD VIEW
+       ============================================ */
+    .view--dashboard {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 32px 40px;
+    }
+
+    .dashboard__grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 960px;
+      flex: 1;
+      max-height: 500px;
+    }
+
+    .dashboard__card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 22px;
+      cursor: default;
+      transition: background 200ms ease, border-color 200ms ease;
+      position: relative;
+      overflow: hidden;
+      animation: cardEntrance 400ms ease both;
+    }
+
+    .dashboard__card:nth-child(1) { animation-delay: 0ms; }
+    .dashboard__card:nth-child(2) { animation-delay: 60ms; }
+    .dashboard__card:nth-child(3) { animation-delay: 120ms; }
+    .dashboard__card:nth-child(4) { animation-delay: 180ms; }
+    .dashboard__card:nth-child(5) { animation-delay: 240ms; }
+    .dashboard__card:nth-child(6) { animation-delay: 300ms; }
+
+    @keyframes cardEntrance {
+      from { opacity: 0; transform: translateY(16px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .dashboard__card::before {
+      display: none;
+    }
+
+    .dashboard__card:hover {
+      border-color: var(--card-hover-border);
+      background: var(--card-hover-bg);
+    }
+
+    .dashboard__card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .dashboard__card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .dashboard__card-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .dashboard__card-icon--blue {
+      background: rgba(0, 212, 255, 0.12);
+      color: var(--cyan);
+    }
+
+    .dashboard__card-icon--green {
+      background: rgba(74, 222, 128, 0.12);
+      color: var(--green);
+    }
+
+    .dashboard__card-icon--yellow {
+      background: rgba(250, 204, 21, 0.12);
+      color: var(--yellow);
+    }
+
+    .dashboard__card-icon--purple {
+      background: rgba(16, 163, 127, 0.12);
+      color: #10a37f;
+    }
+
+    .dashboard__card-icon--orange {
+      background: rgba(251, 146, 60, 0.12);
+      color: var(--orange);
+    }
+
+    .dashboard__card-icon--accent {
+      background: rgba(16, 163, 127, 0.12);
+      color: var(--accent);
+    }
+
+    .dashboard__card-status {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(74, 222, 128, 0.1);
+      color: var(--green);
+    }
+
+    .dashboard__card-status--warning {
+      background: rgba(250, 204, 21, 0.1);
+      color: var(--yellow);
+    }
+
+    .dashboard__card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 100%;
+    }
+
+    .dashboard__card-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .dashboard__card-value span {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0;
+      margin-left: 2px;
+    }
+
+    .dashboard__card-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Mini bar graph */
+    .dashboard__card-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .dashboard__card-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-pill);
+      transition: width 800ms ease;
+    }
+
+    /* ============================================
+       CHAT VIEW
+       ============================================ */
+    .view--chat {
+      flex-direction: column;
+      align-items: center;
+      padding: 0 24px;
+    }
+
+    .chat__messages {
+      flex: 1;
+      width: 100%;
+      max-width: 680px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px 0;
+    }
+
+    .chat__messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .chat__messages::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-pill);
+    }
+
+    .chat__welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      text-align: center;
+      gap: 12px;
+      animation: viewFadeIn 600ms ease;
+    }
+
+    .chat__welcome-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+
+    .chat__welcome-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-lg);
+    }
+
+    .chat__welcome-icon svg {
+      width: 20px;
+      height: 20px;
+      color: var(--accent);
+    }
+
+    .chat__welcome-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chat__welcome-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 380px;
+      line-height: 1.6;
+    }
+
+    /* Chat message bubbles */
+    .chat__msg {
+      max-width: 75%;
+      padding: 14px 18px;
+      border-radius: var(--radius-xl);
+      font-size: 14px;
+      line-height: 1.55;
+      animation: msgSlideIn 300ms ease;
+    }
+
+    @keyframes msgSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat__msg--user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #fff;
+      border-bottom-right-radius: var(--radius-sm);
+    }
+
+    .chat__msg--bot {
+      align-self: flex-start;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      border-bottom-left-radius: var(--radius-sm);
+    }
+
+    .chat__msg--bot.chat__msg--rich {
+      max-width: 90%;
+    }
+
+    .weather-card {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    .weather-card__item {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .weather-card__item strong {
+      display: block;
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .weather-card__item .temp {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .weather-card__item .detail {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .windows-list {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .windows-list__item {
+      background: rgba(16,163,127,0.08);
+      border: 1px solid rgba(16,163,127,0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    .windows-list__item .score {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Input bar */
+    .chat__input-wrapper {
+      width: 100%;
+      max-width: 680px;
+      padding-bottom: 24px;
+    }
+
+    .chat__input-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: var(--radius-2xl);
+      padding: 6px 6px 6px 20px;
+      transition: border-color 200ms ease;
+    }
+
+    .chat__input-bar:focus-within {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .chat__input {
+      flex: 1;
+      border: none;
+      background: none;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+      min-width: 0;
+    }
+
+    .chat__input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .chat__send-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      border: none;
+      background: var(--accent);
+      color: #ffffff;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 150ms ease;
+    }
+
+    .chat__send-btn:hover {
+      opacity: 0.85;
+    }
+
+    .chat__send-btn:active {
+      opacity: 0.7;
+    }
+
+    .chat__send-btn:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 2px;
+    }
+
+    .chat__send-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ============================================
+       SETTINGS VIEW
+       ============================================ */
+    .view--settings {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 32px 40px;
+    }
+
+    .settings__content {
+      max-width: 560px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .settings__group {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl);
+      padding: 20px 24px;
+    }
+
+    .settings__group-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .settings__row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .settings__row:last-child {
+      border-bottom: none;
+    }
+
+    .settings__row-label {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .settings__row-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle__slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-pill);
+      transition: background 200ms ease;
+    }
+
+    .toggle__slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 200ms ease;
+    }
+
+    .toggle input:checked + .toggle__slider {
+      background: var(--accent);
+    }
+
+    .toggle input:checked + .toggle__slider::before {
+      transform: translateX(18px);
+    }
+
+    /* ============================================
+       TYPING INDICATOR
+       ============================================ */
+    .chat__msg--typing {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 16px 20px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: typingBounce 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-4px); }
+    }
+
+    /* ============================================
+       TOAST NOTIFICATIONS
+       ============================================ */
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      padding: 14px 24px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 100;
+      animation: toastIn 300ms ease, toastOut 300ms ease 2.5s forwards;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(16px) scale(0.95); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== LOGIN OVERLAY ========== -->
+  <div class="login-overlay" id="loginOverlay">
+    <canvas class="login-particles" id="loginParticles"></canvas>
+    <div class="login-card">
+      <div class="login-card__brand">
+        <div class="login-card__logo">
+          <img src="assets/L3Harris redbg.png" alt="L3Harris Logo">
+        </div>
+        <span class="login-card__title">SpaceStack</span>
+        <span class="login-card__subtitle">Mission Control — Sign In</span>
+      </div>
+      <form class="login-card__form" id="loginForm" autocomplete="off">
+        <div class="login-card__field">
+          <label class="login-card__label" for="loginUser">Username</label>
+          <input class="login-card__input" id="loginUser" type="text" placeholder="Enter username" autofocus />
+        </div>
+        <div class="login-card__field login-card__field--password">
+          <label class="login-card__label" for="loginPass">Password</label>
+          <input class="login-card__input" id="loginPass" type="password" placeholder="Enter password" />
+          <button type="button" class="login-card__toggle-pw" id="togglePassword" aria-label="Show password">
+            <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+          </button>
+        </div>
+        <span class="login-card__error" id="loginError">Invalid credentials — try again.</span>
+        <button class="login-card__btn" type="submit">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="app" id="app" style="display:none;">
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" role="navigation" aria-label="Main navigation">
+
+      <!-- Brand -->
+      <div class="sidebar__brand">
+        <div class="sidebar__logo">
+          <img src="assets/L3Harris redbg.png" alt="L3Harris Logo">
+        </div>
+        <div class="sidebar__brand-text">
+          <span class="sidebar__brand-name">SpaceStack</span>
+          <span class="sidebar__brand-tagline">Mission Control</span>
+        </div>
+      </div>
+
+      <!-- Collapse toggle -->
+      <button class="sidebar__toggle" id="collapseBtn" aria-label="Collapse sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+
+      <!-- Navigation -->
+      <nav class="sidebar__nav">
+
+        <!-- Back/expand button -->
+        <button class="sidebar__nav-btn sidebar__nav-btn--back"
+                id="backBtn" aria-label="Toggle sidebar">
+          <span class="sidebar__nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </span>
+          <span class="sidebar__nav-label">Back</span>
+        </button>
+
+        <div class="sidebar__section-label">Navigation</div>
+
+        <!-- Chat -->
+        <button class="sidebar__nav-btn active" data-view="chat" id="navChat" aria-label="Chat">
+          <span class="sidebar__nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </span>
+          <span class="sidebar__nav-label">Chat</span>
+        </button>
+
+        <!-- Dashboard -->
+        <button class="sidebar__nav-btn" data-view="dashboard" id="navDashboard" aria-label="Dashboard">
+          <span class="sidebar__nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          </span>
+          <span class="sidebar__nav-label">Dashboard</span>
+        </button>
+
+      </nav>
+
+      <!-- Sidebar footer / user -->
+      <div class="sidebar__footer">
+        <div class="sidebar__footer-user">
+          <div class="sidebar__avatar">MC</div>
+          <div class="sidebar__user-info">
+            <span class="sidebar__user-name">Commander</span>
+            <span class="sidebar__user-role">Admin • Online</span>
+          </div>
+        </div>
+        <button class="sidebar__settings-btn" id="navSettings" data-view="settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="content">
+
+      <!-- Chat View (default active) -->
+      <section class="view view--chat active" id="view-chat">
+        <div class="chat__messages" id="chatMessages">
+          <div class="chat__welcome">
+            <div class="chat__welcome-icon">
+                <img src="assets/L3Harrisred.png" alt="L3Harris Logo">
+            </div>
+            <p class="chat__welcome-sub">Your AI-powered mission companion. Ask about systems, telemetry, or anything you need help with.</p>
+          </div>
+        </div>
+        <div class="chat__input-wrapper">
+          <div class="chat__input-bar">
+            <input class="chat__input" id="chatInput" type="text"
+                   placeholder="Ask mission control anything…"
+                   aria-label="Type a message" />
+            <button class="chat__send-btn" id="sendBtn" aria-label="Send message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="5 12 12 5 19 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard View -->
+      <section class="view view--dashboard" id="view-dashboard">
+        <div class="page-header">
+          <h1 class="page-header__title">Mission Dashboard</h1>
+          <p class="page-header__subtitle">Real-time telemetry from all systems</p>
+        </div>
+        <div class="dashboard__grid">
+          <!-- Weather -->
+          <div class="dashboard__card">
+            <div class="dashboard__card-top">
+              <div class="dashboard__card-icon dashboard__card-icon--blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                </svg>
+              </div>
+              <span class="dashboard__card-status">Nominal</span>
+            </div>
+            <div class="dashboard__card-body">
+              <span class="dashboard__card-value">-67<span>°C</span></span>
+              <span class="dashboard__card-title">Weather</span>
+            </div>
+          </div>
+
+          <!-- Battery -->
+          <div class="dashboard__card">
+            <div class="dashboard__card-top">
+              <div class="dashboard__card-icon dashboard__card-icon--green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="6" width="18" height="12" rx="2" ry="2" />
+                  <line x1="23" y1="13" x2="23" y2="11" />
+                </svg>
+              </div>
+              <span class="dashboard__card-status">Nominal</span>
+            </div>
+            <div class="dashboard__card-body">
+              <span class="dashboard__card-value">87<span>%</span></span>
+              <span class="dashboard__card-title">Battery</span>
+              <div class="dashboard__card-bar">
+                <div class="dashboard__card-bar-fill" style="width: 87%; background: linear-gradient(90deg, var(--green), #22c55e);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Storage -->
+          <div class="dashboard__card">
+            <div class="dashboard__card-top">
+              <div class="dashboard__card-icon dashboard__card-icon--purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <ellipse cx="12" cy="5" rx="9" ry="3" />
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
+              </div>
+              <span class="dashboard__card-status dashboard__card-status--warning">64% Used</span>
+            </div>
+            <div class="dashboard__card-body">
+              <span class="dashboard__card-value">128<span>GB</span></span>
+              <span class="dashboard__card-title">Storage</span>
+              <div class="dashboard__card-bar">
+                <div class="dashboard__card-bar-fill" style="width: 64%; background: linear-gradient(90deg, #10a37f, #0d8a6a);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CPU -->
+          <div class="dashboard__card">
+            <div class="dashboard__card-top">
+              <div class="dashboard__card-icon dashboard__card-icon--yellow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+                  <rect x="9" y="9" width="6" height="6" />
+                  <line x1="9" y1="1" x2="9" y2="4" />
+                  <line x1="15" y1="1" x2="15" y2="4" />
+                  <line x1="9" y1="20" x2="9" y2="23" />
+                  <line x1="15" y1="20" x2="15" y2="23" />
+                  <line x1="20" y1="9" x2="23" y2="9" />
+                  <line x1="20" y1="14" x2="23" y2="14" />
+                  <line x1="1" y1="9" x2="4" y2="9" />
+                  <line x1="1" y1="14" x2="4" y2="14" />
+                </svg>
+              </div>
+              <span class="dashboard__card-status">Nominal</span>
+            </div>
+            <div class="dashboard__card-body">
+              <span class="dashboard__card-value">23<span>%</span></span>
+              <span class="dashboard__card-title">CPU Usage</span>
+              <div class="dashboard__card-bar">
+                <div class="dashboard__card-bar-fill" style="width: 23%; background: linear-gradient(90deg, var(--yellow), #eab308);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Temperature -->
+          <div class="dashboard__card">
+            <div class="dashboard__card-top">
+              <div class="dashboard__card-icon dashboard__card-icon--orange">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+                </svg>
+              </div>
+              <span class="dashboard__card-status">Nominal</span>
+            </div>
+            <div class="dashboard__card-body">
+              <span class="dashboard__card-value">42<span>°C</span></span>
+              <span class="dashboard__card-title">Core Temperature</span>
+            </div>
+          </div>
+
+          <!-- Position -->
+          <div class="dashboard__card">
+            <div class="dashboard__card-top">
+              <div class="dashboard__card-icon dashboard__card-icon--accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+              </div>
+              <span class="dashboard__card-status">Tracking</span>
+            </div>
+            <div class="dashboard__card-body">
+              <span class="dashboard__card-value">LEO<span>408km</span></span>
+              <span class="dashboard__card-title">Orbital Position</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings View -->
+      <section class="view view--settings" id="view-settings">
+        <div class="page-header">
+          <h1 class="page-header__title">Settings</h1>
+          <p class="page-header__subtitle">Configure your mission control preferences</p>
+        </div>
+        <div class="settings__content">
+          <div class="settings__group">
+            <div class="settings__group-title">Display</div>
+            <div class="settings__row">
+              <div>
+                <div class="settings__row-label">Compact Mode</div>
+                <div class="settings__row-desc">Reduce spacing and card sizes</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="toggleCompact" />
+                <span class="toggle__slider"></span>
+              </label>
+            </div>
+            <div class="settings__row">
+              <div>
+                <div class="settings__row-label">Animations</div>
+                <div class="settings__row-desc">Enable smooth transitions and effects</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="toggleAnimations" checked />
+                <span class="toggle__slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    /* ============================================
+       LOGIN LOGIC
+       ============================================ */
+    (function () {
+      const loginOverlay = document.getElementById('loginOverlay');
+      const loginForm    = document.getElementById('loginForm');
+      const loginUser    = document.getElementById('loginUser');
+      const loginPass    = document.getElementById('loginPass');
+      const loginError   = document.getElementById('loginError');
+      const appEl        = document.getElementById('app');
+
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const user = loginUser.value.trim();
+        const pass = loginPass.value;
+
+        if (user === 'admin123' && pass === 'password123') {
+          // Success — reveal the app
+          loginOverlay.classList.add('hidden');
+          appEl.style.display = 'flex';
+          setTimeout(() => loginOverlay.remove(), 600);
+        } else {
+          // Shake + show error
+          loginError.classList.add('visible');
+          loginUser.classList.add('error');
+          loginPass.classList.add('error');
+
+          setTimeout(() => {
+            loginUser.classList.remove('error');
+            loginPass.classList.remove('error');
+          }, 1200);
+        }
+      });
+
+      // Toggle password visibility
+      const togglePw = document.getElementById('togglePassword');
+      const eyeIcon  = document.getElementById('eyeIcon');
+      togglePw.addEventListener('click', () => {
+        const isHidden = loginPass.type === 'password';
+        loginPass.type = isHidden ? 'text' : 'password';
+        togglePw.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        eyeIcon.innerHTML = isHidden
+          ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />'
+          : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" />';
+      });
+
+      // Clear error on new input
+      [loginUser, loginPass].forEach((input) => {
+        input.addEventListener('input', () => {
+          loginError.classList.remove('visible');
+          input.classList.remove('error');
+        });
+      });
+
+      /* ---- LOGIN PARTICLES ---- */
+      const canvas = document.getElementById('loginParticles');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      const PARTICLE_COUNT = 80;
+      let animId;
+
+      function resizeCanvas() {
+        canvas.width = loginOverlay.clientWidth;
+        canvas.height = loginOverlay.clientHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      function createParticle() {
+        return {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 2 + 0.5,
+          dx: (Math.random() - 0.5) * 0.6,
+          dy: (Math.random() - 0.5) * 0.6,
+          opacity: Math.random() * 0.5 + 0.15,
+        };
+      }
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(createParticle());
+
+      function drawParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw connections
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(255, 255, 255, ${0.12 * (1 - dist / 120)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Draw dots
+        particles.forEach((p) => {
+          p.x += p.dx;
+          p.y += p.dy;
+
+          // Wrap around edges
+          if (p.x < 0) p.x = canvas.width;
+          if (p.x > canvas.width) p.x = 0;
+          if (p.y < 0) p.y = canvas.height;
+          if (p.y > canvas.height) p.y = 0;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+          ctx.fill();
+        });
+
+        animId = requestAnimationFrame(drawParticles);
+      }
+      drawParticles();
+
+      // Stop animation once login overlay is removed
+      const loginObserver = new MutationObserver(() => {
+        if (!document.getElementById('loginParticles')) {
+          cancelAnimationFrame(animId);
+          loginObserver.disconnect();
+        }
+      });
+      loginObserver.observe(document.body, { childList: true, subtree: true });
+    })();
+
+    /* ============================================
+       DOM REFERENCES
+       ============================================ */
+    const app         = document.getElementById('app');
+    const collapseBtn = document.getElementById('collapseBtn');
+    const backBtn     = document.getElementById('backBtn');
+    const navBtns     = document.querySelectorAll('.sidebar__nav-btn[data-view]');
+    const settingsBtn = document.getElementById('navSettings');
+    const views       = document.querySelectorAll('.view');
+    const chatInput   = document.getElementById('chatInput');
+    const sendBtn     = document.getElementById('sendBtn');
+    const attachBtn   = document.getElementById('attachBtn');
+    const chatMessages = document.getElementById('chatMessages');
+
+    /* ============================================
+       SIDEBAR TOGGLE
+       ============================================ */
+    collapseBtn.addEventListener('click', () => {
+      app.classList.add('sidebar-collapsed');
+    });
+
+    backBtn.addEventListener('click', () => {
+      app.classList.toggle('sidebar-collapsed');
+      const isCollapsed = app.classList.contains('sidebar-collapsed');
+    });
+
+    /* ============================================
+       SWITCH TO A VIEW (shared helper)
+       ============================================ */
+    let previousView = 'chat';
+
+    function switchView(target) {
+      // Track previous view (don't track settings itself)
+      const currentView = document.querySelector('.view.active');
+      if (currentView && currentView.id !== 'view-settings') {
+        previousView = currentView.id.replace('view-', '');
+      }
+
+      // Update active nav buttons
+      navBtns.forEach((b) => b.classList.remove('active'));
+      const activeNav = document.querySelector(`.sidebar__nav-btn[data-view="${target}"]`);
+      if (activeNav) activeNav.classList.add('active');
+
+      // Toggle settings gear highlight
+      settingsBtn.classList.toggle('active', target === 'settings');
+
+      // Show the target view, hide others
+      views.forEach((v) => {
+        v.classList.toggle('active', v.id === `view-${target}`);
+      });
+
+      // Re-trigger animations for dashboard cards
+      if (target === 'dashboard') {
+        document.querySelectorAll('.dashboard__card').forEach((card, i) => {
+          card.style.animation = 'none';
+          card.offsetHeight;
+          card.style.animation = `cardEntrance 500ms ease ${i * 60}ms both`;
+        });
+      }
+    }
+
+    /* ============================================
+       VIEW SWITCHING
+       ============================================ */
+    navBtns.forEach((btn) => {
+      btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+
+    // Settings via footer gear icon — toggle behavior
+    settingsBtn.addEventListener('click', () => {
+      if (settingsBtn.classList.contains('active')) {
+        switchView(previousView);
+      } else {
+        switchView('settings');
+      }
+    });
+
+    /* ============================================
+       CHAT FUNCTIONALITY
+       ============================================ */
+    const API_URL = 'http://localhost:5050/chat';
+    let isSending = false;
+
+    function addMessage(text, type) {
+      // Remove welcome screen if present
+      const welcome = chatMessages.querySelector('.chat__welcome');
+      if (welcome) welcome.remove();
+
+      const msg = document.createElement('div');
+      msg.className = `chat__msg chat__msg--${type}`;
+      msg.textContent = text;
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return msg;
+    }
+
+    function addRichMessage(html) {
+      const welcome = chatMessages.querySelector('.chat__welcome');
+      if (welcome) welcome.remove();
+
+      const msg = document.createElement('div');
+      msg.className = 'chat__msg chat__msg--bot chat__msg--rich';
+      msg.innerHTML = html;
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return msg;
+    }
+
+    function buildWeatherHTML(weather) {
+      const hourly = weather.hourly || [];
+      if (!hourly.length) return '';
+
+      // Show first 6 hours as preview cards
+      const preview = hourly.slice(0, 6);
+      let html = '<div class="weather-card">';
+      preview.forEach(h => {
+        const time = (h.time || '').split('T')[1] || h.time;
+        html += `<div class="weather-card__item">`;
+        html += `<strong>${time}</strong>`;
+        html += `<span class="temp">${h.temp_c ?? '?'}°C</span>`;
+        html += `<div class="detail">${h.temp_f ?? '?'}°F</div>`;
+        html += `<div class="detail">☁ ${h.cloud_cover_pct ?? '?'}% · 💨 ${h.wind_kmh ?? '?'} km/h</div>`;
+        if (h.precip_mm > 0) html += `<div class="detail">🌧 ${h.precip_mm} mm</div>`;
+        html += `</div>`;
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function buildWindowsHTML(windows) {
+      if (!windows || !windows.length) return '';
+      let html = '<div class="windows-list">';
+      windows.slice(0, 5).forEach((w, i) => {
+        const time = (w.time || w.start || '?');
+        html += `<div class="windows-list__item">`;
+        html += `<span class="score">#${i+1} Score: ${w.score ?? '?'}/100</span> — `;
+        html += `${time} · ${w.temp_c ?? '?'}°C · ☁ ${w.cloud_cover_pct ?? '?'}% · 💨 ${w.wind_kmh ?? '?'} km/h`;
+        html += `</div>`;
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function addTypingIndicator() {
+      const welcome = chatMessages.querySelector('.chat__welcome');
+      if (welcome) welcome.remove();
+
+      const msg = document.createElement('div');
+      msg.className = 'chat__msg chat__msg--bot chat__msg--typing';
+      msg.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return msg;
+    }
+
+    async function handleSend() {
+      const text = chatInput.value.trim();
+      if (!text || isSending) return;
+
+      addMessage(text, 'user');
+      chatInput.value = '';
+      isSending = true;
+      sendBtn.disabled = true;
+      sendBtn.style.opacity = '0.5';
+
+      const typing = addTypingIndicator();
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, location: 'Mayaguez, PR' }),
+        });
+
+        typing.remove();
+
+        if (!res.ok) throw new Error(`Server error (${res.status})`);
+
+        const data = await res.json();
+
+        // Show main answer
+        if (data.answer) {
+          addMessage(data.answer, 'bot');
+        }
+
+        // Show structured weather data as rich cards
+        const s = data.structured || {};
+        if (s.weather && s.weather.hourly && s.weather.hourly.length > 0) {
+          addRichMessage(buildWeatherHTML(s.weather));
+        }
+
+        // Show launch windows
+        if (s.windows && s.windows.length > 0) {
+          addRichMessage(buildWindowsHTML(s.windows));
+        }
+
+        // Show any errors from the backend
+        if (data.errors && data.errors.length > 0) {
+          addMessage('⚠️ ' + data.errors.join(' | '), 'bot');
+        }
+      } catch (err) {
+        typing.remove();
+        addMessage('⚠️ Could not reach mission control — ' + err.message, 'bot');
+      } finally {
+        isSending = false;
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '1';
+      }
+    }
+
+    sendBtn.addEventListener('click', handleSend);
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSend();
+    });
+
+    attachBtn.addEventListener('click', () => {
+      showToast('📎 Attach file — coming soon');
+    });
+
+    /* ============================================
+       SETTINGS TOGGLES
+       ============================================ */
+    document.querySelectorAll('.toggle input').forEach((toggle) => {
+      toggle.addEventListener('change', () => {
+        const label = toggle.closest('.settings__row').querySelector('.settings__row-label').textContent;
+        showToast(`${label}: ${toggle.checked ? 'Enabled' : 'Disabled'}`);
+      });
+    });
+
+    /* ============================================
+       TOAST NOTIFICATION
+       ============================================ */
+    function showToast(message) {
+      // Remove existing toast
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+
+</body>
+</html>
